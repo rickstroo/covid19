@@ -1,3 +1,5 @@
+# Copyright (c) 2020 Rick Stroobosscher
+
 # import a commonly used command line argument parser
 import argparse
 
@@ -29,7 +31,7 @@ import untangle
 xml = '<organization><id>GRH</id><name>Grand River Hospital</name><address><country>Canada</country></address></organization>'
 print(xml)
 
-# extract some attributes, its very easy using untangle
+# extract some values, its very easy using untangle
 doc = untangle.parse(xml)
 id = doc.organization.id.cdata
 print(id)
