@@ -40,19 +40,52 @@ print(name)
 country = doc.organization.address.country.cdata
 print(country)
 
-# import fhir resources
+# import fhir resources for organization
 # requires "pip3.8 install fhir.resources"
 from fhir.resources.organization import Organization
 from fhir.resources.address import Address
 
-# create a fhir resource the "python" way
+# create a fhir organization the "python" way
 org = Organization()
 org.id = id
 org.name = name
 org.address = list()
-addr = Address()
-addr.country = country
-org.address.append(addr)
+address = Address()
+address.country = country
+org.address.append(address)
 
 # print the fhir resource as a JSON object
 print(org.as_json())
+
+# import fhir resoures for observation
+from fhir.resources.observation import Observation
+from fhir.resources.codeableconcept import CodeableConcept
+from fhir.resources.coding import Coding
+
+# create an observation
+obs = Observation()
+obs.id = '1' # should be generated
+obs.status = 'final'
+obs.category = list()
+category = CodeableConcept()
+category.coding = list()
+code = Coding()
+code.system = 'http://hl7.org/fhir/ValueSet/observation-category'
+code.version = '4.0.1'
+code.code = 'imaging'
+code.display = 'imaging'
+category.coding.append(code)
+obs.category.append(category)
+obs.code = CodeableConcept()
+obs.code.coding = list()
+code = Coding()
+code.system = 'unknown'
+code.version = 'unknown'
+code.code = 'unknown'
+code.display = 'pleural thickening'
+obs.code.coding.append(code)
+
+# more to do...
+
+# print the observation as a JSON object
+print(obs.as_json())
