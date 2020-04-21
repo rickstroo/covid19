@@ -102,42 +102,42 @@ obs = '''
         ]
     },
     "subject" : {
-        "reference" : "Patient/$pid, /* will replace $pid with patient id */
-        "display": "$givenname $familyname" /* will replace $pname with patient name */
+        "reference" : "Patient/$pid", /* will replace $pid with patient id */
+        "display": "$givenname $familyname" /* will replace $givenname and $familyname with given and family name */
     },
-    "encounter" : {},
-    "effectiveDateTime" : {},
-    "performer" : {},
-    "valueCodeableConcept" : [
+    "encounter" : {}, /* anything to do here? */
+    "effectiveDateTime" : {}, /* need to put study date and time here */
+    "performer" : {}, /* what do we want to reference here? */
+    "valueCodeableConcept" : [ /* SNOMED codes for COVID-19 */
         {
             "system": "",
 			"code": "",
 			"display": ""
         }
 	],
-    "interpretation" : [
+    "interpretation" : [ /* abnormal or thickened */
         {
             "system": "",
 			"code": "",
 			"display": ""
         }
 	],
-    "bodySite" : [
+    "bodySite" : [ /* need code for lungs */
         {
             "system": "",
 			"code": "",
 			"display": ""
         }
 	],
-    "method" : [
+    "method" : [ /* US */
         {
             "system": "",
 			"code": "",
 			"display": ""
         }
 	],
-    "device" : {},
-    "referenceRange:" : [
+    "device" : {}, /* what do we reference here, if anything? */
+    "referenceRange:" : [ /* do we want to put anything here? */
         {
             "low" : {},
             "high" : {},
@@ -159,7 +159,29 @@ obs = '''
             "text" : {}
         }
     ],
-    "derivedFrom" : {},
+    "derivedFrom" : [ /* references imaging study, using SIUID and ACN */
+        {
+            "identifier" : {
+                "system" : "urn:dicom:uid",
+                "value" : "urn:oid:$siuid" /* $siuid replaced by study instance uid */
+            },
+            "type" : "ImagingStudy"
+        },
+        {
+            "identifier" : {
+                "system" : "http:grh.org/accession",
+                "type" : {
+                    "coding": [
+                        {
+                            "code" : "ACSN",
+                            "system" : "http://terminology.hl7.org/CodeSystem/v2-0203"
+                        }
+                    ]
+                },
+                "value" : "$acn" /* $acn replaced by accession number */
+            }
+        }
+    ],
     "component" : [
         { /* right upper lung */
             "code" : [
