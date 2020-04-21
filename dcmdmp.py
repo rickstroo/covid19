@@ -101,7 +101,10 @@ obs = '''
             }
         ]
     },
-    "subject" : {},
+    "subject" : {
+        "reference" : "Patient/$pid, /* will replace $pid with patient id */
+        "display": "$givenname $familyname" /* will replace $pname with patient name */
+    },
     "encounter" : {},
     "effectiveDateTime" : {},
     "performer" : {},
@@ -158,47 +161,52 @@ obs = '''
     ],
     "derivedFrom" : {},
     "component" : [
-        {
+        { /* right upper lung */
             "code" : [
                 {
                     "system": "",
-        			"code": "",
+        			"code": "", /* need code */
         			"display": ""
                 }
             ],
-            "valueQuantity" : {},
-            "valueCodeableConcept" : [
+            "valueQuantity" : {
+                "value" : 0, /* need value */
+                "comparator" : "", /* do we need this? */
+                "unit" : "", /* need unit */
+                "system" : "<uri>", /* need uri? */
+                "code" : "" /* need code */
+            },
+            "interpretation" : [ /* do we want to use this? */
                 {
                     "system": "",
-        			"code": "",
-        			"display": ""
+                    "code": "",
+                    "display": ""
                 }
-            ],
-            "valueString" : "",
-            "valueBoolean" : false,
-            "valueInteger" : 0,
-            "valueRange" : {},
-            "valueRatio" : {},
-            "valueSampledData" : {},
-            "valueTime" : {},
-            "valuePeriod" : {},
-            "dataAbsentReason" : [
+            ]
+        },
+        { /* right mid lung 2 */
+            "code" : [
                 {
                     "system": "",
-        			"code": "",
+        			"code": "", /* need code */
         			"display": ""
                 }
             ],
-            "interpretation" : [
+            "valueQuantity" : {
+                "value" : 0, /* need value */
+                "comparator" : "", /* do we need this? */
+                "unit" : "", /* need unit */
+                "system" : "<uri>", /* need uri? */
+                "code" : "" /* need code */
+            },
+            "interpretation" : [ /* do we want to use this? */
                 {
                     "system": "",
-        			"code": "",
-        			"display": ""
+                    "code": "",
+                    "display": ""
                 }
-            ],
-            "referenceRange" : {}
+            ]
         }
-
     ]
 }
 '''
@@ -207,6 +215,7 @@ obs = '''
 
 import re
 obs = re.sub('/\*.*\*/', '', obs)
+obs = re.sub('//.*$', '', obs)
 
 # replace the variables
 
@@ -219,6 +228,13 @@ obs = obs.replace('$siuid', siuid.value)
 
 acn = dataset[0x0008,0x0050]
 obs = obs.replace('$acn', acn.value)
+
+pid = dataset[0x0010,0x0020]
+obs = obs.replace('$pid', pid.value)
+
+pname = dataset[0x0010,0x0010]
+obs = obs.replace('$familyname', pname.value.family_name)
+obs = obs.replace('$givenname', pname.value.given_name)
 
 # print the observation
 print(obs)
