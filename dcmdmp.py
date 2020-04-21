@@ -17,155 +17,208 @@ import pydicom
 
 # read the dicom object
 dataset = pydicom.dcmread('/Users/Rick/data/dicom/GENECG.dcm')
-print(dataset)
+#print(dataset)
 
 # this is an example of how to extract a single element
 acn = dataset[0x0008,0x0050]
-print(acn)
+#print(acn)
 
 # import an XML parser
 # requires "pip3.8 install untangle"
 import untangle
 
 # define a resource using XML, just to figure out how to extract values
-xml = '<organization><id>GRH</id><name>Grand River Hospital</name><address><country>Canada</country></address></organization>'
+xml = '''
+<measurement>
+    <valueQuantity value="107" unit="mmHg" system="http://unitsofmeasure.org" code="mm[Hg]"/>
+</measurement>
+'''
 print(xml)
 
-# extract some values, its very easy using untangle
+# extract some values, just to show how its done.  its very easy using untangle
 doc = untangle.parse(xml)
-id = doc.organization.id.cdata
-print(id)
-name = doc.organization.name.cdata
-print(name)
-country = doc.organization.address.country.cdata
-print(country)
+print(doc.measurement.valueQuantity['value'])
+print(doc.measurement.valueQuantity['unit'])
+print(doc.measurement.valueQuantity['system'])
+print(doc.measurement.valueQuantity['code'])
 
-# import fhir resources for organization
-# requires "pip3.8 install fhir.resources"
-from fhir.resources.organization import Organization
-from fhir.resources.address import Address
+# create a observation template.
+# this is my second attempt at defining a fhir resource
+# in my first attempt, i used a bunch fhir resources that allowed
+# me to define fhir resources using python, but that turned out to be
+# rather complex and error prone.  perhaps this is no less error prone,
+# but it seems much easier to read.
+# we include a bunch of variables (e.g. $acn) that will be replaced
+# with their actual values (e.g. accession number).
 
-# create a fhir organization the "python" way
-org = Organization()
-org.id = id
-org.name = name
-org.address = list()
-address = Address()
-address.country = country
-org.address.append(address)
-
-# print the fhir resource as a JSON object
-print(org.as_json())
-
-# import fhir resoures for observation
-from fhir.resources.observation import Observation
-from fhir.resources.codeableconcept import CodeableConcept
-from fhir.resources.coding import Coding
-from fhir.resources.fhirreference import FHIRReference
-from fhir.resources.identifier import Identifier
-
-# create an observation using json
-
-json = {
-  "resourceType": "Observation",
-  "id": "blood-pressure",
-  "meta": {
-    "lastUpdated": "2014-01-30T22:35:23+11:00"
-  },
-  "text": {
-    "status": "generated",
-    "div": "<div><p><b>Generated Narrative with Details</b></p><p><b>id</b>: blood-pressure</p><p><b>meta</b>: </p><p><b>identifier</b>: urn:uuid:187e0c12-8dd2-67e2-99b2-bf273c878281</p><p><b>status</b>: final</p><p><b>code</b>: Blood pressure systolic &amp; diastolic <span>(Details : {LOINC code '55284-4' = 'Blood pressure systolic and diastolic', given as 'Blood pressure systolic &amp; diastolic'})</span></p><p><b>subject</b>: <a>Patient/example</a></p><p><b>effective</b>: 17/09/2012</p><p><b>performer</b>: <a>Practitioner/example</a></p><p><b>interpretation</b>: low <span>(Details : {http://hl7.org/fhir/v2/0078 code 'L' = 'Low', given as 'Below low normal'})</span></p><p><b>bodySite</b>: Right arm <span>(Details : {SNOMED CT code '368209003' = '368209003', given as 'Right arm'})</span></p><blockquote><p><b>component</b></p><p><b>code</b>: Systolic blood pressure <span>(Details : {LOINC code '8480-6' = 'Systolic blood pressure', given as 'Systolic blood pressure'}; {SNOMED CT code '271649006' = '271649006', given as 'Systolic blood pressure'}; {http://acme.org/devices/clinical-codes code 'bp-s' = '??', given as 'Systolic Blood pressure'})</span></p><p><b>value</b>: 107 mm[Hg]</p></blockquote><blockquote><p><b>component</b></p><p><b>code</b>: Diastolic blood pressure <span>(Details : {LOINC code '8462-4' = 'Diastolic blood pressure', given as 'Diastolic blood pressure'})</span></p><p><b>value</b>: 60 mm[Hg]</p></blockquote></div>"
-  },
-  "identifier": [
-    {
-      "system": "urn:ietf:rfc:3986",
-      "value": "urn:uuid:187e0c12-8dd2-67e2-99b2-bf273c878281"
-    }
-  ],
-  "status": "final",
-  "code": {
-    "coding": [
-      {
-        "system": "http://loinc.org",
-        "code": "55284-4",
-        "display": "Blood pressure systolic & diastolic"
-      }
-    ]
-  },
-  "subject": {
-    "reference": "Patient/example"
-  },
-  "effectiveDateTime": "2012-09-17",
-  "performer": [
-    {
-      "reference": "Practitioner/example"
-    }
-  ],
-  "interpretation": [
-    {
-        "coding": [
+obs = '''
+{
+    "resourceType" : "Observation", /* formal name for Observation fHIR resource */
+    "identifier" : [
         {
-            "system": "http://hl7.org/fhir/v2/0078",
-            "code": "L",
-            "display": "Below low normal"
+            "id" : {
+                "system" : "urn:ietf:rfc:3986",
+                "value" : "urn:uuid:$uuid" /* $uuid replaced by uniquely generated uuid4 */
             }
-            ],
-            "text": "low"
+        }
+    ],
+    "partOf" : [ /* references imaging study, using SIUID and ACN */
+        {
+            "identifier" : {
+                "system" : "urn:dicom:uid",
+                "value" : "urn:oid:$siuid" /* $siuid replaced by study instance uid */
+            },
+            "type" : "ImagingStudy"
+        },
+        {
+            "identifier" : {
+                "system" : "http:grh.org/accession",
+                "type" : {
+                    "coding": [
+                        {
+                            "code" : "ACSN",
+                            "system" : "http://terminology.hl7.org/CodeSystem/v2-0203"
+                        }
+                    ]
+                },
+                "value" : "$acn" /* $acn replaced by accession number */
             }
-        ],
-  "bodySite": {
-    "coding": [
-      {
-        "system": "http://snomed.info/sct",
-        "code": "368209003",
-        "display": "Right arm"
-      }
-    ]
-  },
-  "component": [
-    {
-      "code": {
-        "coding": [
-          {
-            "system": "http://loinc.org",
-            "code": "8480-6",
-            "display": "Systolic blood pressure"
-          },
-          {
-            "system": "http://snomed.info/sct",
-            "code": "271649006",
-            "display": "Systolic blood pressure"
-          },
-          {
-            "system": "http://acme.org/devices/clinical-codes",
-            "code": "bp-s",
-            "display": "Systolic Blood pressure"
-          }
-        ]
-      },
-      "valueQuantity": {
-        "value": 107,
-        "unit": "mm[Hg]"
-      }
+        }
+    ],
+    "status" : "final", /* copied from teri's sample */
+    "category" : { /* copied from teri's sample */
+        "system" : "http://hl7.org/fhir/ValueSet/observation-category",
+        "version" : "4.0.1",
+        "code" : "imaging",
+        "display" : "Imaging"
     },
-    {
-      "code": {
-        "coding": [
-          {
-            "system": "http://loinc.org",
-            "code": "8462-4",
-            "display": "Diastolic blood pressure"
-          }
+    "code" : { /* need actual LOINC codes or codes from other system */
+        "coding" : [
+            {
+                "system" : "http://loinc.org",
+                "code" : "TBD", /* need LOINC code */
+                "display" : "TBD" /* need LOINC display */
+            }
         ]
-      },
-      "valueQuantity": {
-        "value": 60,
-        "unit": "mm[Hg]"
-      }
-    }
-  ]
-}
-obs = Observation(json)
+    },
+    "subject" : {},
+    "encounter" : {},
+    "effectiveDateTime" : {},
+    "performer" : {},
+    "valueCodeableConcept" : [
+        {
+            "system": "",
+			"code": "",
+			"display": ""
+        }
+	],
+    "interpretation" : [
+        {
+            "system": "",
+			"code": "",
+			"display": ""
+        }
+	],
+    "bodySite" : [
+        {
+            "system": "",
+			"code": "",
+			"display": ""
+        }
+	],
+    "method" : [
+        {
+            "system": "",
+			"code": "",
+			"display": ""
+        }
+	],
+    "device" : {},
+    "referenceRange:" : [
+        {
+            "low" : {},
+            "high" : {},
+            "type" : [
+                {
+                    "system": "",
+    	            "code": "",
+                    "display": ""
+                }
+            ],
+            "appliesTo" : [
+                {
+                    "system": "",
+    			    "code": "",
+    			    "display": ""
+                }
+            ],
+            "age" : {},
+            "text" : {}
+        }
+    ],
+    "derivedFrom" : {},
+    "component" : [
+        {
+            "code" : [
+                {
+                    "system": "",
+        			"code": "",
+        			"display": ""
+                }
+            ],
+            "valueQuantity" : {},
+            "valueCodeableConcept" : [
+                {
+                    "system": "",
+        			"code": "",
+        			"display": ""
+                }
+            ],
+            "valueString" : "",
+            "valueBoolean" : false,
+            "valueInteger" : 0,
+            "valueRange" : {},
+            "valueRatio" : {},
+            "valueSampledData" : {},
+            "valueTime" : {},
+            "valuePeriod" : {},
+            "dataAbsentReason" : [
+                {
+                    "system": "",
+        			"code": "",
+        			"display": ""
+                }
+            ],
+            "interpretation" : [
+                {
+                    "system": "",
+        			"code": "",
+        			"display": ""
+                }
+            ],
+            "referenceRange" : {}
+        }
 
-# print the observation as a JSON object
-print(obs.as_json())
+    ]
+}
+'''
+
+# remove the comments
+
+import re
+obs = re.sub('/\*.*\*/', '', obs)
+
+# replace the variables
+
+import uuid
+uuid = uuid.uuid4()
+obs = obs.replace('$uuid', str(uuid))
+
+siuid = dataset[0x0020,0x000D]
+obs = obs.replace('$siuid', siuid.value)
+
+acn = dataset[0x0008,0x0050]
+obs = obs.replace('$acn', acn.value)
+
+# print the observation
+print(obs)
