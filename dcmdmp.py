@@ -137,28 +137,6 @@ obs = '''
         }
 	],
     "device" : {}, /* what do we reference here, if anything? */
-    "referenceRange:" : [ /* do we want to put anything here? */
-        {
-            "low" : {},
-            "high" : {},
-            "type" : [
-                {
-                    "system": "",
-    	            "code": "",
-                    "display": ""
-                }
-            ],
-            "appliesTo" : [
-                {
-                    "system": "",
-    			    "code": "",
-    			    "display": ""
-                }
-            ],
-            "age" : {},
-            "text" : {}
-        }
-    ],
     "derivedFrom" : [ /* references imaging study, using SIUID and ACN */
         {
             "identifier" : {
